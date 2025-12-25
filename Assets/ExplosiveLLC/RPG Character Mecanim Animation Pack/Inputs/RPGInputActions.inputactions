@@ -64,7 +64,7 @@
                     "name": "Face",
                     "type": "Button",
                     "id": "787a80ae-a794-4ad0-8aad-2e110194e427",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -145,7 +145,7 @@
                     "name": "WeaponDown",
                     "type": "Button",
                     "id": "ebe77173-3d6b-449e-9552-b29a4d28a382",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -294,17 +294,6 @@
                 },
                 {
                     "name": "",
-                    "id": "cff3abbd-e163-4163-8ebb-7e52d1508789",
-                    "path": "<Keyboard>/shift",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Mouse and Keyboard",
-                    "action": "Aim",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "da68dbb3-b1e4-446a-97bc-e0cc755186a6",
                     "path": "<Gamepad>/leftTrigger",
                     "interactions": "",
@@ -327,11 +316,33 @@
                 },
                 {
                     "name": "",
+                    "id": "6e56959e-904e-43ad-917c-1c0307b6a963",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Mouse and Keyboard",
+                    "action": "AttackL",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "f0acae91-204f-447c-9ff5-24d26ff3cee5",
                     "path": "<Gamepad>/buttonNorth",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
+                    "action": "AttackR",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "53da769a-af28-4bed-a479-bb2eb9b72023",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Mouse and Keyboard",
                     "action": "AttackR",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -372,7 +383,7 @@
                 {
                     "name": "",
                     "id": "63104a7a-9566-435a-be44-cab8f87e4ab2",
-                    "path": "<Mouse>/rightButton",
+                    "path": "<Mouse>/middleButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "Mouse and Keyboard",
@@ -453,6 +464,17 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad;Mouse and Keyboard",
+                    "action": "Roll",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fc3a1a99-cf85-4cb7-a73e-eac38e408a66",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
                     "action": "Roll",
                     "isComposite": false,
                     "isPartOfComposite": false

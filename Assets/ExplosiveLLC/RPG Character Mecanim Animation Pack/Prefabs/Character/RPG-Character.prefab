@@ -20,8 +20,8 @@ GameObject:
   - component: {fileID: 7517427521858630766}
   - component: {fileID: 3668655356348723783}
   - component: {fileID: 9135482310494653551}
-  - component: {fileID: 5156946195285837137}
   - component: {fileID: 8944704227916643753}
+  - component: {fileID: 953163908179164957}
   m_Layer: 0
   m_Name: RPG-Character
   m_TagString: Player
@@ -123,30 +123,30 @@ MonoBehaviour:
   knockbackMultiplier: 0
   movementAnimationMultiplier: 1
   currentVelocity: {x: 0, y: 0, z: 0}
-  walkSpeed: 0.5
-  walkAccel: 15
-  runSpeed: 1
-  runAccel: 30
-  sprintSpeed: 2
-  sprintAccel: 15
-  crouchSpeed: 0.25
-  crouchAccel: 15
-  crawlSpeed: 0.15
+  walkSpeed: 1
+  walkAccel: 20
+  runSpeed: 10
+  runAccel: 100
+  sprintSpeed: 20
+  sprintAccel: 100
+  crouchSpeed: 3
+  crouchAccel: 30
+  crawlSpeed: 2
   crawlAccel: 15
   injuredSpeed: 0.675
   injuredAccel: 20
   groundFriction: 120
-  rotationSpeed: 100
-  canJump: 0
+  rotationSpeed: 500
+  canJump: 1
   holdingJump: 0
   canDoubleJump: 0
-  jumpSpeed: 12
-  jumpGravity: 24
+  jumpSpeed: 30
+  jumpGravity: 70
   allowDoubleJump: 1
   doubleJumpSpeed: 8
   inAirSpeed: 8
   inAirAccel: 16
-  fallGravity: 32
+  fallGravity: 100
   fallingControl: 1
   swimSpeed: 4
   swimAccel: 4
@@ -216,9 +216,9 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 0
   m_IsKinematic: 1
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 80
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
 --- !u!136 &13681452
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -254,9 +254,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13344b6bb22c56445940a3eb4ab75ea9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_TargetMode: 1
   m_TargetObject: {fileID: 0}
+  m_Camera: {fileID: 0}
+  m_CameraForwardDistance: 10
+  m_CustomDirection: {x: 0, y: 0, z: 1}
   m_UpVector: {x: 0, y: 1, z: 0}
   m_LookAtBlendSpeed: 20
+  m_MaxLookAngle: 90
+  m_DeadZoneAngle: 2
+  m_DirectionSmoothTime: 0.1
+  m_UseVerticalDeadZone: 1
+  m_VerticalDeadZoneMin: -5
+  m_VerticalDeadZoneMax: 10
+  m_VerticalTransitionRange: 5
+  m_MinVerticalAngle: -5
+  m_MaxVerticalAngle: 60
+  m_VerticalAngleMultiplier: 1
+  m_ShowVerticalAngleDebug: 1
   m_LegStabilizerMinDistanceToStartSolving: 0.005
   LegStabilizerMaxIterations: 20
   m_DrawDebugLookAtLines: 1
@@ -362,18 +377,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e20277834431ab40a48b8bdf9f630b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RPGCharacterAnims.RPGCharacterInputSystemController
---- !u!114 &5156946195285837137
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100004}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e20277834431ab40a48b8bdf9f630b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RPGCharacterAnims.RPGCharacterInputSystemController
 --- !u!114 &8944704227916643753
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -404,6 +407,21 @@ MonoBehaviour:
   m_DefaultActionMap: 
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!114 &953163908179164957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100004}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4a225232f5fa2c4595303c405b6e09e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleCameraMouseInput
+  tpCamera: {fileID: 0}
+  mouseSensitivity: 1
+  lockCursor: 1
 --- !u!1 &65027534
 GameObject:
   m_ObjectHideFlags: 0

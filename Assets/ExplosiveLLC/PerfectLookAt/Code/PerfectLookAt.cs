@@ -1,14 +1,50 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+public enum TargetMode
+{
+	TargetObject,
+	CameraDirection,
+	CustomDirection
+}
+
 public class PerfectLookAt:MonoBehaviour
 {
 	private Vector3 m_gameObjectScale;
+
+	[Header("Target Settings")]
+	public TargetMode m_TargetMode = TargetMode.TargetObject;
 	public GameObject m_TargetObject;
+	public Camera m_Camera;
+	public float m_CameraForwardDistance = 10f;
+	public Vector3 m_CustomDirection = Vector3.forward;
+
+	[Header("Look At Settings")]
 	public Vector3 m_UpVector = Vector3.up;
 	private float m_Weight = 1.0f;
 	public float m_LookAtBlendSpeed = 5.0f;
 	private float m_BlendSpeed = 0.0f;
+
+	[Header("Advanced Settings")]
+	public float m_MaxLookAngle = 90f;
+	public float m_DeadZoneAngle = 2f;
+	public float m_DirectionSmoothTime = 0.1f;
+	private Vector3 m_SmoothedTargetPosition;
+	private Vector3 m_TargetPositionVelocity;
+
+	[Header("Vertical Angle Control")]
+	public bool m_UseVerticalDeadZone = true;
+	public float m_VerticalDeadZoneMin = -12f;
+	public float m_VerticalDeadZoneMax = 20f;
+	public float m_VerticalTransitionRange = 8f;
+
+	[Header("Vertical Angle Limits")]
+	public float m_MinVerticalAngle = -40f;
+	public float m_MaxVerticalAngle = 50f;
+	public float m_VerticalAngleMultiplier = 0.8f;
+	public bool m_ShowVerticalAngleDebug = false;
+
+	[Header("Leg Stabilizer Settings")]
 	public float m_LegStabilizerMinDistanceToStartSolving = 0.005f;
 	public byte LegStabilizerMaxIterations = 20;
 	public bool m_DrawDebugLookAtLines = false;
@@ -69,6 +105,195 @@ public class PerfectLookAt:MonoBehaviour
 		}
 
 		return ret;
+	}
+
+	public void SetCameraReference(Camera camera, float forwardDistance = 10f)
+	{
+		m_Camera = camera;
+		m_CameraForwardDistance = forwardDistance;
+		m_TargetMode = TargetMode.CameraDirection;
+	}
+
+	public void SetCustomDirection(Vector3 direction)
+	{
+		m_CustomDirection = direction.normalized;
+		m_TargetMode = TargetMode.CustomDirection;
+	}
+
+	public void SetTargetMode(TargetMode mode)
+	{
+		m_TargetMode = mode;
+	}
+
+	private float CalculateVerticalInfluence(float verticalAngle)
+	{
+		if (!m_UseVerticalDeadZone)
+		{
+			return 1.0f;
+		}
+
+		// Check if angle is within dead zone
+		if (verticalAngle >= m_VerticalDeadZoneMin && verticalAngle <= m_VerticalDeadZoneMax)
+		{
+			return 0.0f; // No vertical influence in dead zone
+		}
+
+		// Calculate smooth transition
+		float influence = 0.0f;
+
+		if (verticalAngle < m_VerticalDeadZoneMin)
+		{
+			// Below dead zone (looking down)
+			float transitionStart = m_VerticalDeadZoneMin - m_VerticalTransitionRange;
+			if (verticalAngle <= transitionStart)
+			{
+				influence = 1.0f;
+			}
+			else
+			{
+				// Smooth transition from 0 to 1
+				float t = (m_VerticalDeadZoneMin - verticalAngle) / m_VerticalTransitionRange;
+				influence = Mathf.SmoothStep(0.0f, 1.0f, t);
+			}
+		}
+		else if (verticalAngle > m_VerticalDeadZoneMax)
+		{
+			// Above dead zone (looking up)
+			float transitionEnd = m_VerticalDeadZoneMax + m_VerticalTransitionRange;
+			if (verticalAngle >= transitionEnd)
+			{
+				influence = 1.0f;
+			}
+			else
+			{
+				// Smooth transition from 0 to 1
+				float t = (verticalAngle - m_VerticalDeadZoneMax) / m_VerticalTransitionRange;
+				influence = Mathf.SmoothStep(0.0f, 1.0f, t);
+			}
+		}
+
+		return influence;
+	}
+
+	private Vector3 ApplyVerticalCorrection(Vector3 cameraDirection, Vector3 fromPosition)
+	{
+		// Calculate horizontal direction (XZ plane)
+		Vector3 horizontalDirection = cameraDirection;
+		horizontalDirection.y = 0;
+		horizontalDirection.Normalize();
+
+		// Calculate vertical angle of camera direction
+		float verticalAngle = Mathf.Asin(cameraDirection.y) * Mathf.Rad2Deg;
+
+		// Calculate influence based on dead zone
+		float influence = CalculateVerticalInfluence(verticalAngle);
+
+		// Apply multiplier
+		influence *= m_VerticalAngleMultiplier;
+
+		// Clamp vertical angle
+		verticalAngle = Mathf.Clamp(verticalAngle, m_MinVerticalAngle, m_MaxVerticalAngle);
+
+		// Calculate final vertical component
+		float finalVerticalAngle = verticalAngle * influence;
+
+		// Reconstruct direction with corrected vertical angle
+		float finalVerticalAngleRad = finalVerticalAngle * Mathf.Deg2Rad;
+		Vector3 finalDirection = horizontalDirection * Mathf.Cos(finalVerticalAngleRad);
+		finalDirection.y = Mathf.Sin(finalVerticalAngleRad);
+		finalDirection.Normalize();
+
+		// Debug visualization
+		if (m_ShowVerticalAngleDebug && m_LookAtBones.Length > 0)
+		{
+			Vector3 startPos = fromPosition;
+			float debugLength = 3f;
+
+			// Original camera direction (red)
+			Debug.DrawRay(startPos, cameraDirection * debugLength, Color.red);
+
+			// Horizontal direction (blue)
+			Debug.DrawRay(startPos, horizontalDirection * debugLength, Color.blue);
+
+			// Final corrected direction (green)
+			Debug.DrawRay(startPos, finalDirection * debugLength, Color.green);
+
+			// Angle text would require UnityEditor, so we use simple debug sphere
+			Vector3 textPos = startPos + Vector3.up * 0.5f;
+			Debug.DrawLine(textPos + Vector3.left * 0.1f, textPos + Vector3.right * 0.1f, Color.yellow);
+		}
+
+		return fromPosition + finalDirection * m_CameraForwardDistance;
+	}
+
+	private Vector3 CalculateTargetPosition()
+	{
+		Vector3 rawTargetPosition;
+
+		switch (m_TargetMode)
+		{
+			case TargetMode.TargetObject:
+				if (m_TargetObject != null)
+				{
+					rawTargetPosition = m_TargetObject.transform.position;
+				}
+				else
+				{
+					rawTargetPosition = m_LookAtBones[0].m_Bone.position + m_LookAtBones[0].m_Bone.forward * 10f;
+				}
+				break;
+
+			case TargetMode.CameraDirection:
+				Camera cam = m_Camera != null ? m_Camera : Camera.main;
+				if (cam != null)
+				{
+					// Apply vertical correction to camera direction
+					Vector3 bonePosition = m_LookAtBones[0].m_Bone.position;
+					Vector3 cameraDirection = cam.transform.forward;
+					rawTargetPosition = ApplyVerticalCorrection(cameraDirection, bonePosition);
+				}
+				else
+				{
+					rawTargetPosition = m_LookAtBones[0].m_Bone.position + Vector3.forward * 10f;
+				}
+				break;
+
+			case TargetMode.CustomDirection:
+				rawTargetPosition = m_LookAtBones[0].m_Bone.position + m_CustomDirection * 10f;
+				break;
+
+			default:
+				rawTargetPosition = m_LookAtBones[0].m_Bone.position + Vector3.forward * 10f;
+				break;
+		}
+
+		// Apply smoothing
+		if (m_DirectionSmoothTime > 0.0f)
+		{
+			m_SmoothedTargetPosition = Vector3.SmoothDamp(m_SmoothedTargetPosition, rawTargetPosition,
+				ref m_TargetPositionVelocity, m_DirectionSmoothTime);
+			return m_SmoothedTargetPosition;
+		}
+
+		return rawTargetPosition;
+	}
+
+	private bool IsTargetValid()
+	{
+		switch (m_TargetMode)
+		{
+			case TargetMode.TargetObject:
+				return m_TargetObject != null;
+
+			case TargetMode.CameraDirection:
+				return (m_Camera != null || Camera.main != null);
+
+			case TargetMode.CustomDirection:
+				return true;
+
+			default:
+				return false;
+		}
 	}
 
 	public static Quaternion GetWorldLookAtRotation(Vector3 targetVector, Vector3 fwdVectorInWorldSpace)
@@ -239,6 +464,18 @@ public class PerfectLookAt:MonoBehaviour
 		m_LastFrameRotations = new Quaternion[m_LookAtBones.Length];
 		m_IsValid = CheckValidity();
 
+		// Initialize camera reference if not set
+		if (m_TargetMode == TargetMode.CameraDirection && m_Camera == null)
+		{
+			m_Camera = Camera.main;
+		}
+
+		// Initialize smoothed target position
+		if (m_LookAtBones.Length > 0)
+		{
+			m_SmoothedTargetPosition = CalculateTargetPosition();
+		}
+
 		for (int i = 0; i < m_LookAtBones.Length; i++) {
 			PerfectLookAtData lookAtBoneData = m_LookAtBones[i];
 			PerfecLookAtLinkedBones[] currentLinkedBones = lookAtBoneData.m_LinkedBones;
@@ -262,9 +499,17 @@ public class PerfectLookAt:MonoBehaviour
 	private void Update()
 	{
 		if (m_LookAtBones.Length > 0) {
-			if (m_DrawDebugLookAtLines) {
-				Vector3 destination = m_TargetObject.transform.position - m_LookAtBones[0].m_Bone.position;
-				Debug.DrawLine(m_LookAtBones[0].m_Bone.position, m_LookAtBones[0].m_Bone.position + destination);
+			if (m_DrawDebugLookAtLines && IsTargetValid()) {
+				Vector3 targetPos = CalculateTargetPosition();
+				Vector3 destination = targetPos - m_LookAtBones[0].m_Bone.position;
+				Debug.DrawLine(m_LookAtBones[0].m_Bone.position, m_LookAtBones[0].m_Bone.position + destination, Color.cyan);
+
+				// Draw virtual target point in CameraDirection mode
+				if (m_TargetMode == TargetMode.CameraDirection)
+				{
+					Debug.DrawLine(targetPos + Vector3.up * 0.5f, targetPos - Vector3.up * 0.5f, Color.yellow);
+					Debug.DrawLine(targetPos + Vector3.right * 0.5f, targetPos - Vector3.right * 0.5f, Color.yellow);
+				}
 			}
 
 			// If the system already in a transtion.
@@ -288,8 +533,18 @@ public class PerfectLookAt:MonoBehaviour
 
 	private void LateUpdate()
 	{
-		if (m_TargetObject == null) {
-			Debug.LogWarning("No target object set for the component. Component won't work without a target object", this);
+		if (!IsTargetValid()) {
+			string warningMessage = "";
+			switch (m_TargetMode)
+			{
+				case TargetMode.TargetObject:
+					warningMessage = "No target object set. Set m_TargetObject or switch to CameraDirection mode.";
+					break;
+				case TargetMode.CameraDirection:
+					warningMessage = "No camera found. Set m_Camera or ensure Camera.main exists.";
+					break;
+			}
+			Debug.LogWarning(warningMessage, this);
 			return;
 		}
 
@@ -330,8 +585,26 @@ public class PerfectLookAt:MonoBehaviour
 			Vector3 currentFwdVec;
 			Vector3 parentFwdVec;
 
-			// Current vector is being updated in UpdateCurrentTargetVector.
-			Vector3 targetVector = m_TargetObject.transform.position - m_LookAtBones[0].m_Bone.position;
+			// Get target position from the selected mode
+			Vector3 targetPosition = CalculateTargetPosition();
+			Vector3 targetVector = targetPosition - m_LookAtBones[0].m_Bone.position;
+
+			// Check dead zone
+			float targetAngle = Vector3.Angle(rotatedInitFwdVec, targetVector);
+			if (targetAngle < m_DeadZoneAngle)
+			{
+				return;
+			}
+
+			// Check max look angle
+			if (targetAngle > m_MaxLookAngle)
+			{
+				// Clamp to max angle
+				Vector3 clampedDirection = Vector3.RotateTowards(rotatedInitFwdVec, targetVector,
+					m_MaxLookAngle * Mathf.Deg2Rad, 0f);
+				targetVector = clampedDirection.normalized * targetVector.magnitude;
+			}
+
 			Vector3 firstBoneRotatedInitFwdVec = rotatedInitFwdVec;
 			byte numBonesToRotate = 1;
 
@@ -396,7 +669,7 @@ public class PerfectLookAt:MonoBehaviour
 
 						if (i != m_LookAtBones.Length - 1) {
 							Vector3 currentBoneToParentPosDiff = m_LookAtBones[0].m_Bone.position - m_LookAtBones[i + 1].m_Bone.position;
-							Vector3 firstBoneToTargetDiff = m_TargetObject.transform.position - m_LookAtBones[0].m_Bone.position;
+						Vector3 firstBoneToTargetDiff = targetPosition - m_LookAtBones[0].m_Bone.position;
 							rotatedInitFwdVec = GetForwardVector(ref m_LookAtBones[0].m_Bone, m_LookAtBones[0].m_ForwardAxis);
 							rotatedInitFwdVec.Normalize();
 							rotatedInitFwdVec = firstBoneToTargetDiff.magnitude * rotatedInitFwdVec;
